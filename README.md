@@ -1,7 +1,7 @@
 ### Powell-WG3: Footprint directionality of FLUXNETCH4 network
 
 
-**Contributors:** Mathias Goeckede, Max Planck Inst. Jena;  Etienne Fluet-Chouinard, Stanford University
+**Contributors:** Mathias Goeckede, *Max Planck Inst. Jena*  & Etienne Fluet-Chouinard, *Stanford University*
 
 
 ![arrow plot](https://www.dropbox.com/s/ui4t84c5d9ka673/polar_arrows_BCBog%20.png?raw=1)
