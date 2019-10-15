@@ -1,5 +1,6 @@
-### Powell-WG3
-Footprint directionality of FLUXNETCH4 network
+### Powell-WG3: Footprint directionality of FLUXNETCH4 network
+
+
 **Contributors:** Mathias Goeckede, Max Planck Inst. Jena;  Etienne Fluet-Chouinard, Stanford University
 
 
