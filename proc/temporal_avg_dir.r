@@ -3,25 +3,31 @@
 #   - diurnal
 #   - monthly x diurnal
 
+# TODO: run density on cos,sin values instead of WD
 
-library(scales)
-library(REdaS)
+# /----------------------------------------------------------------------------#
+#/   Function that makes pretty log10 axis breaks                   ------------
+#    Source: https://stackoverflow.com/questions/14255533/pretty-ticks-for-log-normal-scale-using-ggplot2-dynamic-not-manual
+base_breaks <- function(n = 10){
+    function(x) { axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n) } }
 
-# Calculate mean of angles 
-# The resulting radius will be 1 if all angles are equal. If the angles are uniformly distributed on the circle, then the resulting radius will be 0, and there is no circular mean.
 
 
-comb_flux_m <- comb_flux %>% 
-          group_by(site, month) %>% 
-          #do(summarise(circ.summary(.$WD_rad))) %>%
-          summarise(WD_rad_monthmean = circ.summary(WD_rad)[[2]],
-                    WD_rad_monthrho = circ.summary(WD_rad)[[3]],
-                    FCH4_monthmean = mean(FCH4)) %>%
-          ungroup() %>% 
-          mutate(WD_deg_monthmean = rad2deg(WD_rad_monthmean)) %>% 
-          mutate(WD_deg_monthmean = ifelse(WD_deg_monthmean < 0, 360+WD_deg_monthmean, WD_deg_monthmean)) %>% 
-          mutate(month_abb = month.abb[month]) %>% 
-          filter(FCH4_monthmean > 0)
+# /----------------------------------------------------------------------------#
+#/  Calculate monthly means 
+# The resulting radius will be 1 if all angles are equal. 
+# If the angles are uniformly distributed on the circle, then the resulting radius will be 0, and there is no circular mean.
+
+
+flux_m <- flux %>% 
+    group_by(site, month, month_abb) %>% 
+    summarise(WD_rad_monthmean = circ.summary(WD_rad)[[2]],  # Get mean direction
+              WD_rad_monthrho = circ.summary(WD_rad)[[3]],   # Get mean rho
+              FCH4_monthmean = mean(FCH4)) %>%
+    ungroup() %>% 
+    mutate(WD_deg_monthmean = rad2deg(WD_rad_monthmean)) %>% 
+    mutate(WD_deg_monthmean = ifelse(WD_deg_monthmean < 0, 360+WD_deg_monthmean, WD_deg_monthmean)) %>% 
+    filter(FCH4_monthmean > 0)
 
 
 
@@ -29,51 +35,46 @@ comb_flux_m <- comb_flux %>%
 #/  Windrose plot  - monthly arrows w/ length                    ---------
 # this plot cannot represent negative y-values (methane sinks)
 
-ggplot(comb_flux_m) + 
-    
-    geom_segment(aes(y = 0, 
-                     x = WD_deg_monthmean, 
-                     xend = WD_deg_monthmean, 
-                     yend = WD_rad_monthrho, 
-                     group=month,
-                     size=FCH4_monthmean ,
-                     color=month_abb),
-                 arrow = arrow(length = unit(0.03, "npc"), type = "closed")) +
-    
-    
-    geom_text(aes(x = WD_deg_monthmean, 
-                  y = WD_rad_monthrho + .2 , 
-                  label= month_abb, 
-                  color=month_abb),
-              size=3) +
 
-    # make origin white point for cleaner plot
-    geom_point(aes(x=0, y=0), size=4, shape=21, fill='white', color='grey90') +
-    
-    # facet_wrap(.~site) +
-    coord_polar(theta = "x") +
-    
-    # mean resultant length, ρ, is between 0-1 and informs 
-    # on the spread of circular variable.
-    ylab('Rho (dispersion of direction') + 
-    xlab("")+
-    
-    theme_minimal() +
-    theme(panel.grid.minor = element_blank()) +
-    
-    scale_size_continuous(range=c(0.01, 4)) + 
-    scale_color_brewer(palette = "Spectral", direction=-1)  +
-    scale_x_continuous(limits=c(0,360),
-                       breaks = 0:11/12*360,
-                       labels = c("N", "", "", "E", "", "", "S", "", "", "W", "", ""),
-                       name = "Wind Sectors")  +
-    scale_y_continuous(breaks=pretty_breaks()) +
-    
-    guides(color=FALSE)
-
-
-# save plot
-ggsave("./output/polar_monthly_arrow.png", width=160, height=100, units="mm")
+if(nrow(flux_m) > 0){ source('./plot/monthly_arrow_plot.r') }
 
 
 
+# /----------------------------------------------------------------------------#
+#/   Calculate Diurnal averages                                          -------
+
+flux_d <- flux %>% 
+    
+    mutate(hour = hour(TIMESTAMP_END),
+           diurnal_phase = ifelse(hour > 6 & hour <= 18, "Day", "Night")) %>% 
+    group_by(site, diurnal_phase) %>% 
+    summarise(WD_rad_monthmean = circ.summary(WD_rad)[[2]],
+              WD_rad_monthrho = circ.summary(WD_rad)[[3]],
+              FCH4_monthmean = mean(FCH4)) %>%
+    ungroup() %>% 
+    mutate(WD_deg_monthmean = rad2deg(WD_rad_monthmean)) %>% 
+    mutate(WD_deg_monthmean = ifelse(WD_deg_monthmean < 0, 360+WD_deg_monthmean, WD_deg_monthmean)) %>% 
+    filter(FCH4_monthmean > 0)
+
+
+# /----------------------------------------------------------------------------#
+#/  Diurnal Arrow plot  w/ length                                      ---------
+# this plot cannot represent negative y-values (methane sinks)
+
+
+
+if(nrow(flux_d) > 0){ source('./plot/diurnal_arrow_plot.r') }
+
+
+
+# /----------------------------------------------------------------------------#
+#/   Arrange plots in one panel                                         --------
+c <- arrangeGrob(month_arrow_plot,
+                  diurnal_arrow_plot,
+                  nrow=1)
+
+# /----------------------------------------------------------------------------#
+#/  Save panel of plots                                                 --------
+ggsave(paste0("../output/figures/polar_arrows/polar_arrows_", site.name," .png"),
+       c,
+       width=187, height=110, units="mm")

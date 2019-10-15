@@ -1,8 +1,8 @@
 # this script combines the flux data from multiple towers
 
 # Set directories
-indir <- "./data/"
-outdir <- "./scripts/"
+indir <- '../data/'
+outdir <- '../output/'
 plot.CH4.windrose = T
 
 # set sector size
@@ -21,30 +21,31 @@ sites <- list.files(indir) #identify all files in input folder
 site_names <- substr(sites, 1, 5)
 
 # exclude the 2 sites withoud WD column` `
-sites <- sites[!sites %in% c('RUSAM.csv','RUVrk.csv','USMRM.csv')]
+sites <- sites[!sites %in% c('RUVrk.csv','USMRM.csv')]  # 'RUSAM.csv',
 
 
 # loop through sites
-for (site.act in sites[1:1]) {
-    
+for (site.act in sites) {   
+      
     
     site.name <- substr(site.act, 1, 5)
  
-    #create output folder for current site
-    outdir.act <- paste0(outdir, site.name, "/")
+    # Create output folder for current site
+    outdir.act <- paste0(outdir, site.name, '/')
     
     # load dataset
-    flux <- read.csv(paste0(indir, site.act), na.strings="NaN") %>%
+    flux <- read.csv(paste0(indir, site.act), na.strings='NaN') %>%
         
         # Add name column
         mutate(site= site.name ) %>%
          
         # format date
         mutate(TIMESTAMP_END = ymd_hms(TIMESTAMP_END, truncated = 2),
-               month         = month(TIMESTAMP_END)) %>% 
+               month         = month(TIMESTAMP_END),
+               month_abb     = month.abb[month]) %>%
         
         # Select columns relevant to flux & WD
-        dplyr::select(site, WD, FCH4, TIMESTAMP_END, month) %>% 
+        dplyr::select(site, WD, FCH4, TIMESTAMP_END, month, month_abb) %>% 
         
         # Filter missing direction and flux
         filter(!is.na(WD),
@@ -58,35 +59,12 @@ for (site.act in sites[1:1]) {
         # assign wind sector code
         mutate(seccut  = as.numeric(as.character(cut(WD, length(labs), labels=labs)))) 
     
-
-    
-    
     # Append each tower to cumulative table
     comb_flux <- bind_rows(comb_flux, flux)
     
-    print(paste0("Processing site ", site.name, "  Dims: ", dim(flux)))
+    print(paste0('Done processing site ', site.name, '  Dims: ', dim(flux)[1], " x ", dim(flux)[2]))
     
+    
+    # Run averaging and 
+    source('./proc/temporal_avg_dir.r')
 }
-
-
-# /----------------------------------------------------------------------------#
-
-#comb_flux<- comb_flux %>% 
-
-
-
-
-
-# #/  By sector
-# flux_bysector<- flux %>%      
-#     group_by(seccut) %>% 
-#     summarise(freq = n(), 
-#               FCH4_F_median = median(FCH4_F, na.rm=T)) %>% 
-#     ungroup() %>%
-#     # normalize flux
-#     mutate(FCH4_F_median_lin = 
-#                (FCH4_F_median-min(FCH4_F_median))/(max(FCH4_F_median) - min(FCH4_F_median)),
-#            site= site.name)
-# 
-# # Append each tower to cumulative table
-# comb_flux_bysector <- bind_rows(comb_flux_bysector, flux_bysector)
