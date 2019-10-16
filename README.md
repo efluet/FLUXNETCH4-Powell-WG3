@@ -2,6 +2,7 @@
 
 
 **Contributors:** Mathias Goeckede, *Max Planck Inst. Jena*  & Etienne Fluet-Chouinard, *Stanford University*   & Powell Center Workshop Contributors
+
 **Data source:** FLUXNET-CH4 - Global Methane Eddy Covariance Tower Database (![Knox et al. 2019](https://journals.ametsoc.org/doi/abs/10.1175/BAMS-D-18-0268.1)) 
 
 
